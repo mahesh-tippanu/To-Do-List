@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>To‑Do List — Niharika JS</title>
+  <style>
+    :root{
+      --bg:#0f172a;          /* slate-900 */
+      --surface:#111827;     /* gray-900 */
+      --muted:#9ca3af;       /* gray-400 */
+      --text:#e5e7eb;        /* gray-200 */
+      --accent:#22c55e;      /* green-500 */
+      --danger:#ef4444;      /* red-500 */
+      --ring:#60a5fa;        /* blue-400 */
+      --card:#1f2937;        /* gray-800 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background:linear-gradient(140deg,var(--bg),#0b1026 45%,#0a0f20);
+      color:var(--text);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{width:100%; max-width:720px}
+    .card{background:rgba(31,41,55,.85); backdrop-filter: blur(6px); border:1px solid #293241; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.35); overflow:hidden}
+    header{padding:22px 24px 12px; display:flex; align-items:center; gap:16px; border-bottom:1px solid #1b2433}
+    header h1{margin:0; font-size:20px; letter-spacing:.4px}
+    .badge{margin-left:auto; font-size:12px; color:var(--muted)}
+
+    .controls{display:grid; grid-template-columns: 1fr auto auto; gap:10px; padding:16px 16px 8px}
+    .text, .date, button{border-radius:12px; border:1px solid #2a3447; background:#0f172a; color:var(--text)}
+    .text{padding:14px 14px; outline:none}
+    .text:focus{border-color:var(--ring); box-shadow:0 0 0 3px rgba(96,165,250,.25)}
+    .date{padding:10px 12px}
+    .add{padding:12px 16px; font-weight:600; cursor:pointer; border:none; background:linear-gradient(180deg,#1d4ed8,#1e40af); color:white}
+    .add:active{transform:translateY(1px)}
+
+    .toolbar{display:flex; align-items:center; gap:10px; padding:8px 16px 16px}
+    .filters{display:flex; gap:8px}
+    .chip{padding:6px 10px; border-radius:999px; border:1px solid #2a3447; background:#0b1326; color:var(--muted); cursor:pointer; font-size:13px}
+    .chip[aria-pressed="true"]{border-color:var(--accent); color:#d1fae5; background:rgba(34,197,94,.15)}
+    .spacer{flex:1}
+    .clear{background:none; border:1px solid #293241; color:#fca5a5; padding:6px 10px; border-radius:10px; cursor:pointer}
+
+    ul{list-style:none; margin:0; padding:0 8px 8px}
+    li{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; background:var(--card); border:1px solid #263043; margin:8px; padding:12px; border-radius:14px}
+    li.dragging{opacity:.5}
+
+    .ck{width:18px; height:18px; accent-color:var(--accent); cursor:pointer}
+    .label{display:flex; flex-direction:column}
+    .title{font-weight:500}
+    .meta{font-size:12px; color:var(--muted)}
+    .overdue{color:#fca5a5}
+
+    .btn{background:none; border:1px solid #293241; color:var(--muted); padding:6px 10px; border-radius:10px; cursor:pointer}
+    .btn:hover{border-color:#3a465f; color:#cbd5e1}
+    .btn.danger{color:#fecaca; border-color:#3a1f24}
+
+    .empty{color:var(--muted); text-align:center; padding:24px 16px}
+    .footer{padding:12px 16px 18px; color:var(--muted); font-size:12px; border-top:1px solid #1b2433}
+
+    @media (max-width:560px){
+      .controls{grid-template-columns: 1fr auto;}
+      .date{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card" role="application" aria-label="To‑Do List">
+      <header>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11l3 3L22 4" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="#93c5fd" stroke-width="2" stroke-linecap="round"/></svg>
+        <h1>Tasks</h1>
+        <div class="badge"><span id="count">0</span> active</div>
+      </header>
+
+      <div class="controls">
+        <input id="input" class="text" type="text" placeholder="Add a task… (press Enter)" aria-label="Task title" />
+        <input id="due" class="date" type="date" aria-label="Due date" />
+        <button class="add" id="addBtn" aria-label="Add task">Add</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters" role="tablist" aria-label="Filters">
+          <button class="chip" data-filter="all" aria-pressed="true">All</button>
+          <button class="chip" data-filter="active" aria-pressed="false">Active</button>
+          <button class="chip" data-filter="completed" aria-pressed="false">Completed</button>
+        </div>
+        <div class="spacer"></div>
+        <button class="clear" id="clearCompleted">Clear completed</button>
+      </div>
+
+      <ul id="list" aria-live="polite"></ul>
+      <div class="empty" id="empty">No tasks yet. Add your first one! 🎯</div>
+
+      <div class="footer">
+        <span>• Double‑click a title to edit. • Drag items to reorder. • Data is saved locally.</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const input = document.getElementById('input');
+  const due = document.getElementById('due');
+  const list = document.getElementById('list');
+  const count = document.getElementById('count');
+  const empty = document.getElementById('empty');
+  const addBtn = document.getElementById('addBtn');
+  const clearCompleted = document.getElementById('clearCompleted');
+  const filters = [...document.querySelectorAll('.chip')];
+
+  const LS_KEY = 'vanilla_todos_v1';
+  let state = load();
+  let currentFilter = 'all';
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; }
+  }
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  function addTask(title, dueDate){
+    if(!title || !title.trim()) return;
+    state.push({ id: uid(), title: title.trim(), completed:false, due: dueDate || '' });
+    input.value='';
+    render();
+    save();
+  }
+
+  function updateCount(){
+    const active = state.filter(t => !t.completed).length;
+    count.textContent = active;
+  }
+
+  function humanDate(str){
+    if(!str) return '';
+    const d = new Date(str + 'T00:00:00');
+    return d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+  }
+
+  function isOverdue(task){
+    if(!task.due || task.completed) return false;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(task.due + 'T00:00:00');
+    return d < today;
+  }
+
+  function render(){
+    list.innerHTML='';
+    const filtered = state.filter(t => currentFilter==='all' ? true : currentFilter==='active' ? !t.completed : t.completed);
+
+    filtered.forEach(task => {
+      const li = document.createElement('li');
+      li.draggable = true;
+      li.dataset.id = task.id;
+
+      const ck = document.createElement('input');
+      ck.type='checkbox'; ck.className='ck'; ck.checked = task.completed;
+      ck.addEventListener('change', () => { task.completed = ck.checked; save(); render(); });
+
+      const label = document.createElement('div');
+      label.className='label';
+
+      const title = document.createElement('div');
+      title.className='title';
+      title.textContent = task.title;
+      if(task.completed) title.style.textDecoration='line-through';
+
+      title.addEventListener('dblclick', () => startEdit(title, task));
+
+      const meta = document.createElement('div');
+      meta.className='meta';
+      meta.innerHTML = task.due ? `Due: <span class="${isOverdue(task)?'overdue':''}">${humanDate(task.due)}</span>` : 'No due date';
+
+      label.append(title, meta);
+
+      const actions = document.createElement('div');
+      const editBtn = document.createElement('button');
+      editBtn.className='btn'; editBtn.textContent='Edit';
+      editBtn.addEventListener('click', () => startEdit(title, task));
+
+      const delBtn = document.createElement('button');
+      delBtn.className='btn danger'; delBtn.textContent='Delete';
+      delBtn.addEventListener('click', () => { state = state.filter(t => t.id !== task.id); save(); render(); });
+
+      actions.append(editBtn, delBtn);
+
+      li.append(ck, label, actions);
+
+      // drag handlers
+      li.addEventListener('dragstart', e => {
+        li.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', task.id);
+      });
+      li.addEventListener('dragend', () => li.classList.remove('dragging'));
+
+      list.appendChild(li);
+    });
+
+    empty.style.display = filtered.length ? 'none' : 'block';
+    updateCount();
+  }
+
+  function startEdit(titleEl, task){
+    const inputEl = document.createElement('input');
+    inputEl.type='text'; inputEl.value = task.title; inputEl.className='text';
+    inputEl.style.padding='6px 8px'; inputEl.style.font='inherit';
+    titleEl.replaceWith(inputEl);
+    inputEl.focus(); inputEl.select();
+
+    function commit(){
+      const v = inputEl.value.trim();
+      task.title = v || task.title; // keep old if empty
+      save(); render();
+    }
+
+    inputEl.addEventListener('keydown', e => {
+      if(e.key==='Enter') commit();
+      if(e.key==='Escape') render();
+    });
+    inputEl.addEventListener('blur', commit);
+  }
+
+  // List drag-over to reorder
+  list.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const dragging = document.querySelector('li.dragging');
+    if(!dragging) return;
+    const afterEl = getDragAfterElement(list, e.clientY);
+    if(afterEl == null){
+      list.appendChild(dragging);
+    } else {
+      list.insertBefore(dragging, afterEl);
+    }
+  });
+
+  list.addEventListener('drop', () => {
+    // Rebuild state based on DOM order of current filter
+    const ids = [...list.querySelectorAll('li')].map(li => li.dataset.id);
+    const byId = Object.fromEntries(state.map(t => [t.id, t]));
+    const others = state.filter(t => !ids.includes(t.id));
+    const reordered = ids.map(id => byId[id]).concat(others);
+    state = reordered; save(); render();
+  });
+
+  function getDragAfterElement(container, y){
+    const els = [...container.querySelectorAll('li:not(.dragging)')];
+    return els.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height/2;
+      if(offset < 0 && offset > closest.offset){
+        return { offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  // Events
+  addBtn.addEventListener('click', () => addTask(input.value, due.value));
+  input.addEventListener('keydown', (e) => {
+    if(e.key==='Enter') addTask(input.value, due.value);
+  });
+
+  clearCompleted.addEventListener('click', () => {
+    state = state.filter(t => !t.completed);
+    save(); render();
+  });
+
+  filters.forEach(btn => btn.addEventListener('click', () => {
+    filters.forEach(b => b.setAttribute('aria-pressed','false'));
+    btn.setAttribute('aria-pressed','true');
+    currentFilter = btn.dataset.filter;
+    render();
+  }));
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>
