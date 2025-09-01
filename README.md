@@ -21,7 +21,7 @@ It supports task creation, editing, deletion, completion, filters, drag-and-drop
 
 ## 🌐 Running the App
 1. Clone this repository:
-bash   git clone https://github.com/your-username/todo-list-js.git
+bash   git clone https://github.com/mahesh-tippanu/todo-list-js.git
 Open the folder in VS Code (or any editor).
 Double-click index.html → It will open in your browser.
 Start adding your tasks 🎉
